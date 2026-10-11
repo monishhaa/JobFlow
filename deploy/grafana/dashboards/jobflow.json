@@ -1,0 +1,174 @@
+{
+ "title": "Jobflow",
+ "uid": "jobflow",
+ "schemaVersion": 39,
+ "refresh": "5s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "timeseries",
+   "title": "Throughput (jobs finished / min)",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "sum by (status) (rate(jobs_finished_total[1m])) * 60",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Queue depth by priority",
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "max by (priority) (queue_depth)",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "p95 job duration",
+   "gridPos": {
+    "x": 16,
+    "y": 0,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(job_duration_seconds_bucket[5m])))",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "p95 queue wait",
+   "gridPos": {
+    "x": 0,
+    "y": 8,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(job_queue_wait_seconds_bucket[5m])))",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "Running jobs",
+   "gridPos": {
+    "x": 8,
+    "y": 8,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "sum(jobs_running)",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "type": "timeseries",
+   "title": "Retries and reaper recoveries",
+   "gridPos": {
+    "x": 16,
+    "y": 8,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "sum(rate(job_retries_total[1m])) or vector(0)",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "type": "timeseries",
+   "title": "Reaper recoveries",
+   "gridPos": {
+    "x": 0,
+    "y": 16,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "sum(increase(reaper_recovered_total[1m]))",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "type": "timeseries",
+   "title": "Workers alive",
+   "gridPos": {
+    "x": 8,
+    "y": 16,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "max(workers_alive)",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "type": "timeseries",
+   "title": "API p95 latency",
+   "gridPos": {
+    "x": 16,
+    "y": 16,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": "Prometheus",
+   "targets": [
+    {
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m])))",
+     "refId": "A"
+    }
+   ]
+  }
+ ]
+}

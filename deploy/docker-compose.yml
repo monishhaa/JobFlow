@@ -1,0 +1,57 @@
+# Usage: cp ../.env.example .env (edit values), then: docker compose up --build
+services:
+  web:
+    build: ../frontend
+    ports: ["127.0.0.1:80:80"]
+    depends_on: [api]
+  postgres:
+    image: postgres:16
+    environment: { POSTGRES_DB: jobflow, POSTGRES_USER: jobflow, POSTGRES_PASSWORD: "${DB_PASSWORD}" }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U jobflow"], interval: 5s, retries: 10 }
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 10 }
+  api:
+    build: ../backend
+    environment:
+      FORWARD_HEADERS: native
+      SPRING_PROFILES_ACTIVE: api
+      DB_URL: jdbc:postgresql://postgres:5432/jobflow
+      DB_USER: jobflow_app            # RLS-enforced role
+      DB_PASSWORD: "${APP_DB_PASSWORD}"
+      MIGRATE_USER: jobflow           # owner, runs Flyway
+      MIGRATE_PASSWORD: "${DB_PASSWORD}"
+      APP_DB_PASSWORD: "${APP_DB_PASSWORD}"
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: "${JWT_SECRET}"
+      PAYLOAD_KEY: "${PAYLOAD_KEY}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+      COOKIE_SECURE: "false"          # local http only; keep true behind HTTPS
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_healthy } }
+  worker:
+    build: ../backend
+    environment:
+      SPRING_PROFILES_ACTIVE: worker
+      DB_URL: jdbc:postgresql://postgres:5432/jobflow
+      DB_USER: jobflow                # trusted system role, bypasses RLS
+      DB_PASSWORD: "${DB_PASSWORD}"
+      APP_DB_PASSWORD: "${APP_DB_PASSWORD}"
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: "${JWT_SECRET}"
+      PAYLOAD_KEY: "${PAYLOAD_KEY}"
+    deploy: { replicas: 3 }
+    stop_grace_period: 45s
+    depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_healthy } }
+  prometheus:
+    image: prom/prometheus
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml"]
+    ports: ["127.0.0.1:9090:9090"]
+  grafana:
+    image: grafana/grafana
+    ports: ["127.0.0.1:3000:3000"]
+    volumes: ["./grafana/provisioning:/etc/grafana/provisioning", "./grafana/dashboards:/var/lib/grafana/dashboards"]
+volumes: { pgdata: {} }

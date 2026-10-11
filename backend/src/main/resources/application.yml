@@ -1,0 +1,59 @@
+spring:
+  application.name: jobflow
+  lifecycle.timeout-per-shutdown-phase: 40s
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/jobflow}
+    username: ${DB_USER:jobflow}
+    password: ${DB_PASSWORD:jobflow}
+    hikari:
+      maximum-pool-size: 20
+      initialization-fail-timeout: -1
+  flyway:
+    user: ${MIGRATE_USER:${DB_USER:jobflow}}
+    password: ${MIGRATE_PASSWORD:${DB_PASSWORD:jobflow}}
+    placeholders:
+      appDbPassword: ${APP_DB_PASSWORD:jobflow_app}
+  data.redis.url: ${REDIS_URL:redis://localhost:6379}
+  jackson.serialization.write-dates-as-timestamps: false
+  task.scheduling.pool.size: 4
+server:
+  shutdown: graceful
+  forward-headers-strategy: ${FORWARD_HEADERS:none}
+  port: ${PORT:8080}
+app:
+  crypto:
+    key: ${PAYLOAD_KEY}
+  jwt:
+    secret: ${JWT_SECRET}
+    access-ttl: 15m
+    refresh-ttl: 7d
+  cookie-secure: ${COOKIE_SECURE:true}
+  cors-origin: ${CORS_ORIGIN:http://localhost:5173}
+  worker:
+    concurrency: 8
+    lease-seconds: 30
+    heartbeat-seconds: 10
+    poll-millis: 300
+    shutdown-wait-seconds: 30
+  retry:
+    base-seconds: 5
+    max-seconds: 900
+    jitter: 0.2
+  limits:
+    max-payload-bytes: 65536
+    max-high-priority-queued: 20
+  retention:
+    finished-days: 30
+  ssrf:
+    allow-private: false
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+management:
+  endpoints.web.exposure.include: health,prometheus
+  endpoint.health:
+    probes.enabled: true
+    show-details: never
+    group.readiness.include: readinessState,db,redis
+springdoc:
+  swagger-ui.path: /swagger-ui.html

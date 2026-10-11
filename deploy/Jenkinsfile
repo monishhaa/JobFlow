@@ -1,0 +1,21 @@
+pipeline {
+  agent any
+  environment { REGISTRY = credentials('ecr-registry-url'); TAG = "${env.GIT_COMMIT}" }
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Backend tests') { steps { dir('backend') { sh 'mvn -B verify' } } }
+    stage('Frontend tests + build') {
+      when { expression { fileExists('frontend/package.json') } }
+      steps { dir('frontend') { sh 'npm ci && npm test --if-present && npm run build' } }
+    }
+    stage('Security scan') { steps { dir('backend') { sh 'mvn -B org.owasp:dependency-check-maven:check || true' } } }
+    stage('Build images') { steps { sh 'docker build -t $REGISTRY/jobflow-backend:$TAG backend' } }
+    stage('Push to ECR') {
+      steps { sh 'aws ecr get-login-password | docker login --username AWS --password-stdin $REGISTRY && docker push $REGISTRY/jobflow-backend:$TAG' }
+    }
+    stage('Deploy') {
+      steps { sshagent(['ec2-ssh']) { sh 'ssh -o StrictHostKeyChecking=no ec2-user@$DEPLOY_HOST "cd jobflow/deploy && TAG=$TAG docker compose pull && docker compose up -d"' } }
+    }
+    stage('Smoke test') { steps { sh 'curl -fsS http://$DEPLOY_HOST:8080/actuator/health' } }
+  }
+}
