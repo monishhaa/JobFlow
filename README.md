@@ -32,7 +32,7 @@ It focuses on the hard parts of background processing: leases, fencing, retries,
     <td width="50%"><img src="docs/login.png" alt="Sign in page"></td>
   </tr>
   <tr>
-    <td align="center"><sub>A job that lost its worker and finished on another one</sub></td>
+    <td align="center"><sub>Job detail: input payload, execution result and per-attempt history</sub></td>
     <td align="center"><sub>Sign in</sub></td>
   </tr>
 </table>
